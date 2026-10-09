@@ -1,4 +1,4 @@
-# hide-user-email
+# email-privacy
 
 Claude Code が会話の最初のユーザーメッセージに自動で付ける `# userEmail` ブロック（ログイン中アカウントのメールアドレス）を、モデルに送る前に取り除く、または別のアドレスに置き換える mod です。
 
@@ -9,7 +9,7 @@ Claude Code が会話の最初のユーザーメッセージに自動で付け�
 Claude Code のプロンプトで次を入力します。
 
 ```
-/plugin install hide-user-email --marketplace unseenentity626/claudecode-email-privacy
+/plugin install email-privacy --marketplace unseenentity626/claudecode-email-privacy
 ```
 
 marketplace を追加するか聞かれたら `y` を押し、インストール先のスコープを選びます。新しく始める会話から有効になります。

@@ -1,5 +1,5 @@
 {
   "name": "claudecode-email-privacy",
   "owner": { "name": "unseenentity626" },
-  "plugins": [{ "name": "hide-user-email", "source": "./" }]
+  "plugins": [{ "name": "email-privacy", "source": "./" }]
 }
