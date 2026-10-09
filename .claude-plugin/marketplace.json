@@ -1,5 +1,6 @@
 {
   "name": "claudecode-email-privacy",
   "owner": { "name": "unseenentity626" },
+  "description": "Keeps the Claude Code account email out of the model's context.",
   "plugins": [{ "name": "email-privacy", "source": "./" }]
 }

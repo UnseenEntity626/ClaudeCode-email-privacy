@@ -1,6 +1,7 @@
 {
   "name": "email-privacy",
   "version": "0.1.0",
+  "author": { "name": "unseenentity626" },
   "description": "Removes or replaces the userEmail context block before it reaches the model.",
   "userConfig": {
     "mode": {
