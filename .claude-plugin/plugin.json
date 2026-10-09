@@ -1,0 +1,20 @@
+{
+  "name": "hide-user-email",
+  "version": "0.1.0",
+  "description": "Removes or replaces the userEmail context block before it reaches the model.",
+  "userConfig": {
+    "mode": {
+      "type": "string",
+      "title": "Mode",
+      "description": "remove: drop the userEmail block. override: replace it with the alias.",
+      "default": "remove",
+      "options": ["remove", "override"]
+    },
+    "alias": {
+      "type": "string",
+      "title": "Alias",
+      "description": "Address shown to the model in override mode. Empty falls back to remove.",
+      "default": ""
+    }
+  }
+}
