@@ -1,73 +1,75 @@
 # email-privacy
 
-Claude Code が会話の最初のユーザーメッセージに自動で付ける `# userEmail` ブロック（ログイン中アカウントのメールアドレス）を、モデルに送る前に取り除く、または別のアドレスに置き換える mod です。
+**English** | [日本語](README.ja.md)
 
-ログインや課金に使うアカウントはそのままで、モデルに渡る文脈からだけメールアドレスを外せます。
+A Claude Code mod that removes the `# userEmail` block (your signed-in account's email address), which Claude Code automatically attaches to the first user message of every conversation, before it reaches the model — or replaces it with a different address.
 
-## 背景
+Your account stays signed in and billed as usual; only the address is kept out of the context the model sees.
 
-OAuth（サブスクリプション）でログインした Claude Code は、`~/.claude.json` の `oauthAccount.emailAddress` を読み、会話ごとに `# userEmail` ブロックとしてモデルの文脈に入れます。ユーザーが会話で教えていなくても、モデルはアドレスを知っています。これを止める公式の設定は、2026 年 10 月時点で見つかっていません（[anthropics/claude-code#81138](https://github.com/anthropics/claude-code/issues/81138) は Open のままです）。
+## Background
 
-この文脈のアドレスが、モデルの判断で外に書き出された例が報告されています。
+When you sign in with OAuth (a subscription), Claude Code reads `oauthAccount.emailAddress` from `~/.claude.json` and adds it to the model's context as a `# userEmail` block in every conversation. The model knows your address even if you never mention it. As of October 2026 there is no official setting to turn this off ([anthropics/claude-code#81138](https://github.com/anthropics/claude-code/issues/81138) is still open).
 
-- 生成したコードの User-Agent に個人のアドレスが入り、外部 API へ約 4,000 回送られた（v2.1.233、[Qiita](https://qiita.com/ackyv7/items/aba872aa1a4a389661fd)）
-- `git -c user.email=<アドレス>` でコミットされ、設定していた noreply の identity が上書きされた（[#81138](https://github.com/anthropics/claude-code/issues/81138)）
-- 頼んでいないのに、回答の中でアドレスに触れた（同上）
+There are reports of the model writing that address out on its own initiative:
 
-v2.1.234 以降、ブロックには「ユーザーの識別にだけ使い、頼まれない限り無関係なサービスに送らない」という一文が付きました。ただしこれはモデルへの指示で、アドレスは文脈に残ります。何が「無関係なサービス」にあたるかもモデルの判断です。この mod は、ブロックそのものをモデルに渡さないことで、この経路を断ちます。
+- It put a personal address into the User-Agent of generated code, which was then sent to an external API about 4,000 times (v2.1.233, [Qiita, in Japanese](https://qiita.com/ackyv7/items/aba872aa1a4a389661fd)).
+- It committed with `git -c user.email=<address>`, overriding a configured noreply identity ([#81138](https://github.com/anthropics/claude-code/issues/81138)).
+- It mentioned the address in a reply without being asked (same issue).
 
-## インストール
+Since v2.1.234 the block carries an extra sentence telling the model to use the address only to identify the user and not to send it to unrelated services unless asked. That is an instruction to the model, though: the address stays in the context, and what counts as an "unrelated service" is still the model's call. This mod closes that path by not passing the block to the model at all.
 
-Claude Code のプロンプトで次を入力します。
+## Install
+
+Type the following at the Claude Code prompt:
 
 ```
 /plugin install email-privacy --marketplace unseenentity626/claudecode-email-privacy
 ```
 
-marketplace を追加するか聞かれたら `y` を押し、インストール先のスコープを選びます。新しく始める会話から有効になります。
+If asked whether to add the marketplace, press `y`, then choose the install scope. The mod takes effect in conversations started after installing.
 
-## 設定
+## Settings
 
-`/config` で変更できます。
+Change these with `/config`.
 
-| 項目 | 値 | 動作 |
+| Option | Value | Behavior |
 | --- | --- | --- |
-| `mode` | `remove`（既定） | `userEmail` ブロックを送りません |
-| | `override` | ブロックの本文全体を `The user's email address is <alias>.` に置き換えます（v2.1.234 以降に付く利用条件の一文も消えます） |
-| `alias` | 文字列（既定は空） | `override` のときに見せるアドレスです。空なら `remove` と同じ動作になります |
+| `mode` | `remove` (default) | Does not send the `userEmail` block |
+| | `override` | Replaces the whole block body with `The user's email address is <alias>.` (this also drops the usage sentence added in v2.1.234) |
+| `alias` | string (empty by default) | The address shown in `override` mode. If empty, behaves like `remove` |
 
-## 仕組み
+## How it works
 
-`prompt.context` フックで文脈ブロックの一覧を受け取り、`name === "userEmail"` のブロックを外す（または本文を差し替える）してから engine に渡します。
+A `prompt.context` hook receives the list of context blocks, removes the block whose `name === "userEmail"` (or replaces its body), and then passes the list on to the engine.
 
-- engine から返ってきた結果にも同じ処理をかけ直します。他の plugin が同じブロックを足し直した場合への備えです。
-- フック内でエラーが起きたときも、`userEmail` を外してから下のフックに渡し、返ってきた結果からも外します（エラー時も送らない側に倒します）。
+- The same filter is applied again to the result coming back from the engine, in case another plugin adds the block back.
+- If an error occurs inside the hook, it still removes `userEmail` before passing the blocks to the hooks beneath, and removes it from what they return (it fails closed: on error, the address is not sent).
 
-## 確かめたこと（Claude Code 2.1.295）
+## What was checked (Claude Code 2.1.295)
 
-- `claude plugin validate`、`claude plugin test`（5 件）、`tsc` がすべて通ります。
-- `claude -p` で mod あり・なしを比べました。
-  - mod なしでは `# userEmail` が見え、ドメインを答えます。
-  - mod ありでは `# userEmail` が見えず、アドレスも答えません。
-  - これはモデル自身の答えにもとづく確認です。
+- `claude plugin validate`, `claude plugin test` (5 tests), and `tsc` all pass.
+- Compared `claude -p` with and without the mod:
+  - Without the mod, the model sees `# userEmail` and gives the domain when asked.
+  - With the mod, the model does not see `# userEmail` and does not give the address.
+  - This check relies on the model's own answers.
 
-## 防げないこと
+## What it does not prevent
 
-- 止められるのは `prompt.context` の `userEmail` ブロックだけです。次のような別の経路でアドレスがモデルに見えることは防げません。
-  - git の author 設定や `git log`
-  - `gh` などのコマンドの出力
-  - ファイルの中身（以前の会話でメモリや `CLAUDE.md` に書き込まれたアドレスを含みます）
-  - MCP コネクタの応答
-- コミットに付く `Co-authored-by:` トレーラーにアカウントのアドレスが入るという報告があります（v2.1.165 ごろから、[anthropics/claude-code#66079](https://github.com/anthropics/claude-code/issues/66079)）。この経路が `userEmail` ブロック由来かは確かめていません。公開リポジトリに push する前に、コミットの author とトレーラーを確認してください。
-- すでに push したコミットや、送信済みのリクエストからアドレスを消すことはできません。
-- 認証情報（`~/.claude.json` など）には触りません。
-- 実行環境によっては、別の仕組みで同じ情報を足している可能性があります。その経路まで塞げるかは環境ごとに確かめてください。
-- mod の API（function hooks）は EARLY ACCESS で、今後のリリースで予告なく変わることがあります。
+- It only stops the `userEmail` block in `prompt.context`. It cannot stop the address from reaching the model through other paths, such as:
+  - git author settings or `git log`
+  - output of commands like `gh`
+  - file contents (including addresses written into memory or `CLAUDE.md` in earlier conversations)
+  - MCP connector responses
+- There are reports of the account address appearing in `Co-authored-by:` commit trailers (since around v2.1.165, [anthropics/claude-code#66079](https://github.com/anthropics/claude-code/issues/66079)). Whether that comes from the `userEmail` block has not been verified. Check commit authors and trailers before pushing to a public repository.
+- It cannot remove the address from commits already pushed or requests already sent.
+- It does not touch credentials (such as `~/.claude.json`).
+- Some execution environments may add the same information through a different mechanism. Check in each environment whether that path is covered too.
+- The mod API (function hooks) is EARLY ACCESS and may change without notice in future releases.
 
-## 開発
+## Development
 
 ```
 claude plugin validate .
 claude plugin test .
-claude --plugin-dir . # 手元で読み込んで試す
+claude --plugin-dir . # load it locally to try it out
 ```
