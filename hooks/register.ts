@@ -17,8 +17,9 @@ export const register: Register = (on, options) => {
     // A plugin beneath may add the block back; filter what reaches the model too.
     return { ...result, blocks: filter(result.blocks) }
   }).catch(async ($, e, next) => {
-    // Fail closed: whatever went wrong, the address is not sent.
-    const result = await next(e)
-    return { ...result, blocks: result.blocks.filter(block => block.name !== BLOCK) }
+    // Fail closed: whatever went wrong, the address reaches neither the hooks beneath nor the model.
+    const drop = (blocks: readonly PromptContextBlock[]) => blocks.filter(block => block.name !== BLOCK)
+    const result = await next({ ...e, blocks: drop(e.blocks) })
+    return { ...result, blocks: drop(result.blocks) }
   })
 }

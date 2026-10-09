@@ -1,5 +1,5 @@
 {
-  "name": "hide-user-email",
+  "name": "email-privacy",
   "version": "0.1.0",
   "description": "Removes or replaces the userEmail context block before it reaches the model.",
   "userConfig": {
